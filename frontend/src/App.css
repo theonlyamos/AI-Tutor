@@ -1,38 +1,116 @@
-.App {
-    text-align: center;
+/* App.css - Main styling for the Synthesis Tutor 2.0 app */
+
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Animations for the tutor messages */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out forwards;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+/* Pulse animation for loading indicator */
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.5; }
 }
 
-.App-link {
-    color: #61dafb;
+.pulse {
+  animation: pulse 1.5s infinite;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Module card transitions */
+.module-card {
+  transition: all 0.3s ease;
+}
+
+.module-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Locked module styling */
+.module-locked {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+
+/* Progress bar animation */
+@keyframes progressAnimation {
+  0% { width: 0%; }
+}
+
+.progress-animate {
+  animation: progressAnimation 1s ease-out forwards;
+}
+
+/* Avatar styling */
+.avatar-tutor {
+  background: linear-gradient(135deg, #4299e1, #667eea);
+}
+
+.avatar-student {
+  background: linear-gradient(135deg, #ed64a6, #d53f8c);
+}
+
+/* Button hover effects */
+.interactive-button {
+  transition: all 0.2s ease;
+}
+
+.interactive-button:hover {
+  transform: scale(1.05);
+}
+
+.interactive-button:active {
+  transform: scale(0.95);
+}
+
+/* Module content transitions */
+.module-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.module-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.module-exit {
+  opacity: 1;
+}
+
+.module-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 300ms, transform 300ms;
 }
