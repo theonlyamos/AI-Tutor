@@ -90,7 +90,7 @@ const StudentMessage = ({ message }) => (
 );
 
 const ModuleCard = ({ module, onSelect, progress }) => {
-  const isCompleted = progress?.find(p => p.module_id === module.id)?.completed;
+  const isCompleted = progress?.some(p => p.module_id === module.id && p.completed);
   
   return (
     <motion.div
