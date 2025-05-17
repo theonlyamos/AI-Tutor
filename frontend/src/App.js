@@ -597,20 +597,34 @@ const ScienceModule = ({ onComplete }) => {
   );
 };
 
-const StudentVideoComponent = ({ isCameraActive }) => {
+const StudentVideoComponent = ({ isCameraActive, studentId }) => {
   const webcamRef = useRef(null);
   const [captureInterval, setCaptureInterval] = useState(null);
   const [lastImageData, setLastImageData] = useState(null);
+  const [processingFrame, setProcessingFrame] = useState(false);
 
   useEffect(() => {
-    if (isCameraActive && webcamRef.current) {
+    if (isCameraActive && webcamRef.current && studentId) {
       // Set up a capture interval to periodically send frames to the backend
-      const interval = setInterval(() => {
+      const interval = setInterval(async () => {
+        if (processingFrame) return; // Skip if already processing a frame
+        
         const imageSrc = webcamRef.current?.getScreenshot();
         if (imageSrc) {
           setLastImageData(imageSrc);
-          // Here you could send the image to the backend AI
-          // For now, we're just storing it in state
+          
+          // Send the frame to the backend
+          try {
+            setProcessingFrame(true);
+            await axios.post(`${API}/process-video-frame`, {
+              student_id: studentId,
+              frame_data: imageSrc
+            });
+            setProcessingFrame(false);
+          } catch (error) {
+            console.error("Failed to send video frame:", error);
+            setProcessingFrame(false);
+          }
         }
       }, 3000); // Capture every 3 seconds
       
@@ -620,7 +634,7 @@ const StudentVideoComponent = ({ isCameraActive }) => {
       clearInterval(captureInterval);
       setCaptureInterval(null);
     }
-  }, [isCameraActive, captureInterval]);
+  }, [isCameraActive, captureInterval, studentId, processingFrame]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden bg-gray-200">
@@ -642,6 +656,12 @@ const StudentVideoComponent = ({ isCameraActive }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
           <p className="text-sm">Camera inactive</p>
+        </div>
+      )}
+      
+      {processingFrame && (
+        <div className="absolute bottom-2 right-2">
+          <div className="animate-pulse h-3 w-3 bg-green-500 rounded-full"></div>
         </div>
       )}
     </div>
