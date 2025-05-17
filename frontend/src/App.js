@@ -939,6 +939,14 @@ const Home = () => {
     }
   }, [typingQueue, isCurrentlyTyping]);
 
+  // Additional useEffect to handle camera activation when student is registered
+  useEffect(() => {
+    if (studentId && currentStep === "learning") {
+      // Activate camera after student is registered and we're in the learning phase
+      setIsCameraActive(true);
+    }
+  }, [studentId, currentStep]);
+
   // Render the main content based on current step
   const renderMainContent = () => {
     if (currentStep === "module" && selectedModule) {
