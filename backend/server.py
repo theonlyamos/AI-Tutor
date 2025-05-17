@@ -287,6 +287,51 @@ async def get_student_progress(student_id: str):
     progress_records = await db.progress.find({"student_id": student_id}).to_list(100)
     return [ProgressRecord(**record) for record in progress_records]
 
+@api_router.post("/process-video-frame", response_model=Dict[str, Any])
+async def process_video_frame(video_frame: VideoFrame):
+    """
+    Process a video frame from the student's camera.
+    This endpoint can be used to analyze student behavior, engagement, etc.
+    """
+    # Extract the base64 data and convert to binary
+    try:
+        # Remove the "data:image/jpeg;base64," prefix if present
+        if "," in video_frame.frame_data:
+            _, frame_data = video_frame.frame_data.split(",", 1)
+        else:
+            frame_data = video_frame.frame_data
+            
+        # Decode base64 to binary data
+        binary_data = base64.b64decode(frame_data)
+        
+        # In a real implementation, we would analyze the image with
+        # computer vision or send it to the AI model
+        # For now, we'll just store a record of the frame
+        
+        frame_record = {
+            "id": str(uuid.uuid4()),
+            "student_id": video_frame.student_id,
+            "timestamp": datetime.utcnow(),
+            "processed": True
+        }
+        
+        await db.video_frames.insert_one(frame_record)
+        
+        # Optionally, we could use the video frame in our AI context
+        # by sending it to the Gemini model along with any text
+        
+        return {
+            "status": "success",
+            "message": "Video frame processed successfully",
+            "frame_id": frame_record["id"]
+        }
+    except Exception as e:
+        logger.error(f"Error processing video frame: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing video frame: {str(e)}"
+        )
+
 # Include the router in the main app
 app.include_router(api_router)
 
