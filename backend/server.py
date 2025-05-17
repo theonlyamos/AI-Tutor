@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Body
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Body, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -8,6 +8,8 @@ import os
 import logging
 import uuid
 import json
+import base64
+import io
 from pathlib import Path
 from dotenv import load_dotenv
 import google.generativeai as genai
