@@ -1070,7 +1070,7 @@ const Home = () => {
             
             {/* Student Video Component */}
             <div className="h-48 w-full">
-              <StudentVideoComponent isCameraActive={isCameraActive} />
+              <StudentVideoComponent isCameraActive={isCameraActive} studentId={studentId} />
             </div>
             
             {/* Camera toggle button - only shown when student is registered */}
