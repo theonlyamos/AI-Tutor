@@ -1,7 +1,10 @@
 import requests
 import sys
 import uuid
+import base64
 from datetime import datetime
+from io import BytesIO
+from PIL import Image, ImageDraw
 
 class SynthesisTutorAPITester:
     def __init__(self, base_url):
@@ -180,6 +183,42 @@ class SynthesisTutorAPITester:
             print(f"Retrieved progress for {len(response)} modules")
             for progress in response:
                 print(f"  - {progress.get('module_name')}: Completed: {progress.get('completed')}, Score: {progress.get('score')}")
+        return success
+        
+    def test_process_video_frame(self):
+        """Test processing a video frame from the camera"""
+        if not self.student_id:
+            print("❌ No student ID available for testing")
+            return False
+            
+        # Create a simple test image
+        img = Image.new('RGB', (320, 240), color = (73, 109, 137))
+        d = ImageDraw.Draw(img)
+        d.rectangle([(50, 50), (200, 200)], fill=(128, 0, 0))
+        
+        # Convert to base64
+        buffered = BytesIO()
+        img.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        
+        # Add data URL prefix
+        img_base64 = f"data:image/jpeg;base64,{img_str}"
+        
+        success, response = self.run_test(
+            "Process Video Frame",
+            "POST",
+            "process-video-frame",
+            200,
+            data={
+                "student_id": self.student_id,
+                "frame_data": img_base64
+            }
+        )
+        
+        if success:
+            print(f"Frame processed successfully: {response.get('message', '')}")
+            print(f"Frame ID: {response.get('frame_id', '')}")
+        
         return success
 
 def main():
