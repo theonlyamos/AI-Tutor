@@ -92,6 +92,10 @@ class Module(BaseModel):
     locked: bool = True
     requirements: Optional[List[str]] = None
 
+class VideoFrame(BaseModel):
+    student_id: str
+    frame_data: str  # Base64 encoded image data
+
 # API Routes
 
 @api_router.get("/")
