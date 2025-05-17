@@ -148,16 +148,24 @@ async def chat_with_tutor(
     # Add current message
     chat_context.append({"role": "user", "parts": [message]})
     
-    # If this is a new conversation, add a system prompt
+    # Prepare chat context
     if not context:
-        system_prompt = f"""You are Synthesis Tutor 2.0, an AI tutor for a student named {student['name']}. 
+        # Add personalized prompt as the first "model" message instead of system prompt
+        # (Gemini doesn't support system role)
+        personalized_prompt = f"""You are Synthesis Tutor 2.0, an AI tutor for a student named {student['name']}. 
         Your goal is to be helpful, supportive, and personalized in your teaching approach.
         Keep your answers friendly and conversational for a student in grade {student.get('grade', 'school')}.
         Explain concepts clearly and provide interactive examples when possible.
         """
-        chat = model.start_chat(history=[
-            {"role": "system", "parts": [system_prompt]}
-        ])
+        
+        # Initialize the chat with an empty history
+        chat = model.start_chat(history=[])
+        
+        # Send the personalized prompt as a hidden "instruction" message
+        # Then we'll use the regular message
+        instruction_response = chat.send_message(
+            f"Please respond to the student as if you are an AI tutor with these instructions: {personalized_prompt}"
+        )
     else:
         chat = model.start_chat(history=chat_context[:-1])
 
