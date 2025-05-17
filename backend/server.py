@@ -142,8 +142,12 @@ async def chat_with_tutor(
 
     # Format context for the AI model (previous conversation)
     chat_context = []
-    for msg in context:
-        chat_context.append({"role": "user" if msg["role"] == "student" else "model", "parts": [msg["content"]]})
+    if context:
+        for msg in context:
+            if msg["role"] == "student":
+                chat_context.append({"role": "user", "parts": [msg["content"]]})
+            else:
+                chat_context.append({"role": "model", "parts": [msg["content"]]})
     
     # Add current message
     chat_context.append({"role": "user", "parts": [message]})
