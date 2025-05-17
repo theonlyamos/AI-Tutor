@@ -271,6 +271,10 @@ def main():
             )
             tester.test_get_progress()
     
+    # Test video frame processing
+    print("\n===== TESTING CAMERA FUNCTIONALITY =====\n")
+    tester.test_process_video_frame()
+    
     # Print results
     print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
     return 0 if tester.tests_passed == tester.tests_run else 1
