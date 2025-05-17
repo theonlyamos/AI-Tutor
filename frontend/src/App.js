@@ -661,6 +661,7 @@ const Home = () => {
   const [modules, setModules] = useState([]);
   const [selectedModule, setSelectedModule] = useState(null);
   const [studentProgress, setStudentProgress] = useState([]);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const messagesEndRef = useRef(null);
 
   // Initialize with welcome message
