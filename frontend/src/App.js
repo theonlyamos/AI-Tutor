@@ -597,6 +597,57 @@ const ScienceModule = ({ onComplete }) => {
   );
 };
 
+const StudentVideoComponent = ({ isCameraActive }) => {
+  const webcamRef = useRef(null);
+  const [captureInterval, setCaptureInterval] = useState(null);
+  const [lastImageData, setLastImageData] = useState(null);
+
+  useEffect(() => {
+    if (isCameraActive && webcamRef.current) {
+      // Set up a capture interval to periodically send frames to the backend
+      const interval = setInterval(() => {
+        const imageSrc = webcamRef.current?.getScreenshot();
+        if (imageSrc) {
+          setLastImageData(imageSrc);
+          // Here you could send the image to the backend AI
+          // For now, we're just storing it in state
+        }
+      }, 3000); // Capture every 3 seconds
+      
+      setCaptureInterval(interval);
+      return () => clearInterval(interval);
+    } else if (!isCameraActive && captureInterval) {
+      clearInterval(captureInterval);
+      setCaptureInterval(null);
+    }
+  }, [isCameraActive, captureInterval]);
+
+  return (
+    <div className="relative w-full h-full rounded-lg overflow-hidden bg-gray-200">
+      {isCameraActive ? (
+        <Webcam
+          audio={false}
+          ref={webcamRef}
+          screenshotFormat="image/jpeg"
+          className="w-full h-full object-cover"
+          videoConstraints={{
+            width: 320,
+            height: 240,
+            facingMode: "user"
+          }}
+        />
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <p className="text-sm">Camera inactive</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Home = () => {
   const [studentName, setStudentName] = useState("");
   const [studentGrade, setStudentGrade] = useState("");
