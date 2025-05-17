@@ -669,8 +669,8 @@ const StudentVideoComponent = ({ isCameraActive, studentId }) => {
       )}
       
       {processingFrame && (
-        <div className="absolute bottom-2 right-2">
-          <div className="animate-pulse h-3 w-3 bg-green-500 rounded-full"></div>
+        <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 rounded-full p-1">
+          <div className="animate-pulse h-4 w-4 bg-green-500 rounded-full"></div>
         </div>
       )}
     </div>
