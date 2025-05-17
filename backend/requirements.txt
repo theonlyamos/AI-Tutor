@@ -24,3 +24,6 @@ python-multipart>=0.0.9
 jq>=1.6.0
 typer>=0.9.0
 google-generativeai>=0.3.1
+opencv-python>=4.7.0.72
+pillow>=9.4.0
+mss>=9.0.1
