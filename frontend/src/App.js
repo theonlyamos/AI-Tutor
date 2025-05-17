@@ -607,7 +607,8 @@ const StudentVideoComponent = ({ isCameraActive, studentId }) => {
     if (isCameraActive && webcamRef.current && studentId) {
       // Set up a capture interval to periodically send frames to the backend
       const interval = setInterval(async () => {
-        if (processingFrame) return; // Skip if already processing a frame
+        // Skip if already processing a frame
+        if (processingFrame) return;
         
         const imageSrc = webcamRef.current?.getScreenshot();
         if (imageSrc) {
@@ -615,12 +616,20 @@ const StudentVideoComponent = ({ isCameraActive, studentId }) => {
           
           // Send the frame to the backend
           try {
-            setProcessingFrame(true);
-            await axios.post(`${API}/process-video-frame`, {
+            setProcessingFrame(true); // Set processing state to true
+            console.log("Sending video frame to backend");
+            
+            const response = await axios.post(`${API}/process-video-frame`, {
               student_id: studentId,
               frame_data: imageSrc
             });
-            setProcessingFrame(false);
+            
+            console.log("Frame processed:", response.data);
+            
+            // Add a small delay to make the indicator visible
+            setTimeout(() => {
+              setProcessingFrame(false); // Set processing state back to false
+            }, 500);
           } catch (error) {
             console.error("Failed to send video frame:", error);
             setProcessingFrame(false);
