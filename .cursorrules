@@ -1,0 +1,112 @@
+# AI Agent Project Guide: Synthesis Tutor 2.0
+
+This document provides guidance to AI agents working on the Synthesis Tutor 2.0 project.
+
+## 1. Project Overview
+
+Synthesis Tutor 2.0 is an interactive AI-powered tutoring application.
+
+- **Frontend:** React (web-based interface for students).
+- **Backend:** Python with FastAPI (handles business logic, database interactions, and AI integration).
+- **AI Tutor:** Powered by Google's Gemini models.
+- **Database:** MongoDB.
+- **Deployment:** Dockerized with Nginx serving the frontend and reverse-proxying the backend.
+
+## 2. Key Directories & Files
+
+### Root Directory (`.`):
+
+- `Dockerfile`: Defines the multi-stage Docker build for production.
+  - Stage 1: Node.js to build the React frontend.
+  - Stage 2: Python to set up the backend.
+  - Stage 3: Nginx to serve the frontend and proxy the backend.
+- `entrypoint.sh`: Script executed when the Docker container starts. It launches Uvicorn for the backend and Nginx.
+- `nginx.conf`: Nginx configuration file.
+  - Serves static frontend files.
+  - Proxies `/api` requests to the backend running on `http://127.0.0.1:8001`.
+- `requirements.txt`: Root Python dependencies, primarily used by the Docker build for the final Python environment in the Nginx container (and potentially for auxiliary scripts or broader tooling).
+- `README.md`: Main project documentation.
+- `.cursorrules`: This file.
+- `.gitignore`, `.dockerignore`: Standard ignore files.
+
+### Backend (`./backend/`):
+
+- **Primary Application Logic:** `server.py`
+  - FastAPI application instance (`app`).
+  - Defines API endpoints (prefixed with `/api`).
+  - Handles MongoDB interactions (using `motor` for async).
+  - Integrates with Google Generative AI (Gemini).
+  - Uses Pydantic models for data validation.
+- **Dependencies:** `requirements.txt` (specific to the backend application code).
+- **Environment Variables:** Managed via a `.env` file in this directory (e.g., `MONGO_URL`, `DB_NAME`, `GOOGLE_AI_API_KEY`). Loaded by `python-dotenv`.
+- **External Integrations:** `external_integrations/` (currently a placeholder, intended for modules interacting with other services).
+- **Startup (local):** `uvicorn server:app --reload --port 8001`
+
+### Frontend (`./frontend/`):
+
+- **Framework:** React (created with Create React App).
+- **Main Application Component:** `src/App.js` (currently quite large, consider refactoring into smaller components).
+- **Static Assets:** `public/`
+- **Dependencies:** `package.json` (managed with `bun`).
+- **Key Libraries:** `axios` (API calls), `react-router-dom`, `react-webcam`, `tailwindcss`.
+- **Environment Variables:** Can be set in a `.env` file here (e.g., `REACT_APP_API_BASE_URL`).
+- **Build Process:** `bun build` creates a `build/` directory, which is then served by Nginx in the Docker container.
+- **Startup (local):** `bun start` (typically on port 3000).
+
+### Tests (`./tests/`):
+
+- Contains test files. For example, `backend_test.py` for backend tests using `pytest`.
+
+## 3. Core Technologies & Versions
+
+- **Python:** 3.11
+- **Node.js:** v20 (for frontend build)
+- **FastAPI:** Latest stable (see `backend/requirements.txt`)
+- **React:** v19 (see `frontend/package.json`)
+- **MongoDB:** Version compatibility with `motor` driver.
+- **Nginx:** Stable Alpine version (see `Dockerfile`).
+
+## 4. Key Environment Variables
+
+### Backend (`backend/.env`):
+
+- `MONGO_URL`: Crucial for database connection.
+- `DB_NAME`: Specifies the MongoDB database name.
+- `GOOGLE_AI_API_KEY`: Essential for AI chat functionality.
+
+### Frontend (`frontend/.env` - if used for local dev targeting):
+
+- `REACT_APP_API_BASE_URL`: Can be used to explicitly set the backend API URL during local development if not relying on proxy.
+
+## 5. Important Considerations for AI Agent
+
+- **API Key Security:** The `GOOGLE_AI_API_KEY` should _always_ be loaded from environment variables and never hardcoded. Ensure `.env` files are in `.gitignore`.
+- **Monolithic Frontend Component:** `frontend/src/App.js` is large. When working on the frontend, consider opportunities to break it down into smaller, reusable components.
+- **Dependency Management:** Note the two `requirements.txt` files. The one in `backend/` is for the application itself. The root one is used by the Dockerfile for the final image layer. Be mindful of which one to modify.
+- **External Integrations:** The `backend/external_integrations/` directory is intended for modularizing connections to external services (AWS, Supabase, etc., listed in the root `requirements.txt`). If adding such integrations, prefer creating modules here.
+- **Error Handling:** Ensure robust error handling is implemented, especially for API calls and external service interactions.
+- **Code Style & Linting:**
+  - **Python:** Adhere to `black` for formatting and `flake8`/`mypy` for linting.
+  - **JavaScript/React:** Adhere to `prettier` for formatting and `eslint` for linting.
+  - (Refer to `.cursorrules.json` for editor-specific linting/formatting, though this `.cursorrules` file is for higher-level guidance).
+- **API Design:** Backend API endpoints are defined in `backend/server.py` and prefixed with `/api`. Nginx routes these.
+- **Docker Builds:** Understand the multi-stage `Dockerfile`. Changes to dependencies or build steps in one stage can affect others.
+
+## 6. Common Tasks
+
+- **Adding a new API endpoint:**
+  1. Define the Pydantic models in `backend/server.py`.
+  2. Add the route function to `api_router` in `backend/server.py`.
+  3. Implement the business logic, including any database interactions.
+  4. Add corresponding tests in `tests/backend_test.py`.
+- **Adding a new Frontend Feature:**
+  1. Create new React components in `frontend/src/components/` (suggest creating this directory if it doesn't exist).
+  2. Update `frontend/src/App.js` or relevant parent components.
+  3. Add API service calls using `axios` if needed.
+  4. Style using Tailwind CSS.
+- **Modifying Dependencies:**
+  - Backend: run `uv add <package> --group=backend` (or `uv sync`).
+  - Frontend: run `yarn add <package>` (or `yarn install`).
+  - If root dependencies for Docker build need changing: Edit root `requirements.txt`.
+
+This guide should help in understanding the project structure and making consistent contributions.

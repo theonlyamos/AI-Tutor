@@ -13,13 +13,26 @@ import io
 from pathlib import Path
 from dotenv import load_dotenv
 import google.generativeai as genai
+from contextlib import asynccontextmanager
+
+# Configure logging first as it's used early
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # Set up Google Generative AI
-genai.configure(api_key="AIzaSyAz606O_FIDxZaieX2CFzyHGfTOXj0zK00")
+google_api_key = os.getenv("GOOGLE_AI_API_KEY")
+if not google_api_key:
+    logger.error("GOOGLE_AI_API_KEY not found in environment variables. Please set it in backend/.env")
+    raise ValueError("GOOGLE_AI_API_KEY not found in environment variables.")
+genai.configure(api_key=google_api_key)
+
 generation_config = {
     "temperature": 0.9,
     "top_p": 1,
@@ -36,18 +49,20 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app_instance: FastAPI):
+    # Startup logic can go here if needed
+    logger.info("Application startup: MongoDB client initialized.")
+    yield
+    # Shutdown logic
+    logger.info("Application shutdown: Closing MongoDB client.")
+    client.close()
+
+# Create the main app with the lifespan manager
+app = FastAPI(lifespan=lifespan)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 # Define Models
 class Student(BaseModel):
@@ -94,7 +109,8 @@ class Module(BaseModel):
 
 class VideoFrame(BaseModel):
     student_id: str
-    frame_data: str  # Base64 encoded image data
+    frame_data: str  # Base64 encoded data
+    mime_type: Optional[str] = "video/webm" # Default to video/webm, will be sent by frontend
 
 # API Routes
 
@@ -287,46 +303,68 @@ async def get_student_progress(student_id: str):
     progress_records = await db.progress.find({"student_id": student_id}).to_list(100)
     return [ProgressRecord(**record) for record in progress_records]
 
+VIDEO_UPLOADS_DIR = ROOT_DIR / "video_uploads"
+
 @api_router.post("/process-video-frame", response_model=Dict[str, Any])
-async def process_video_frame(video_frame: VideoFrame):
+async def process_video_frame(video_frame_input: VideoFrame):
     """
-    Process a video frame from the student's camera.
-    This endpoint can be used to analyze student behavior, engagement, etc.
+    Process a video/audio frame chunk from the student's camera.
+    Saves the chunk to a file.
     """
-    # Extract the base64 data and convert to binary
     try:
-        # Remove the "data:image/jpeg;base64," prefix if present
-        if "," in video_frame.frame_data:
-            _, frame_data = video_frame.frame_data.split(",", 1)
+        student_id = video_frame_input.student_id
+        base64_data = video_frame_input.frame_data
+        mime_type = video_frame_input.mime_type
+
+        # Ensure student-specific directory exists
+        student_video_dir = VIDEO_UPLOADS_DIR / student_id
+        student_video_dir.mkdir(parents=True, exist_ok=True)
+
+        # Remove the data URL prefix if present (e.g., "data:video/webm;base64,")
+        if "," in base64_data:
+            meta, actual_base64_data = base64_data.split(",", 1)
         else:
-            frame_data = video_frame.frame_data
+            actual_base64_data = base64_data
             
         # Decode base64 to binary data
-        binary_data = base64.b64decode(frame_data)
-        
-        # In a real implementation, we would analyze the image with
-        # computer vision or send it to the AI model
-        # For now, we'll just store a record of the frame
-        
-        frame_record = {
+        binary_data = base64.b64decode(actual_base64_data)
+
+        # Generate a unique filename for the chunk
+        timestamp_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+        file_extension = mime_type.split("/")[-1] if mime_type else "webm"
+        # Sanitize file extension if necessary, e.g., remove codecs part for ; codecs=vp8,opus
+        if ";" in file_extension:
+            file_extension = file_extension.split(";")[0]
+
+        chunk_filename = f"{timestamp_str}.{file_extension}"
+        chunk_filepath = student_video_dir / chunk_filename
+
+        # Write the binary data to the file
+        with open(chunk_filepath, "wb") as f:
+            f.write(binary_data)
+
+        # Log to database (optional, can be adapted)
+        # The old frame_record was for images and stored in db.video_frames
+        # For video chunks, you might want a different collection or structure
+        video_chunk_record = {
             "id": str(uuid.uuid4()),
-            "student_id": video_frame.student_id,
+            "student_id": student_id,
             "timestamp": datetime.utcnow(),
-            "processed": True
+            "mime_type": mime_type,
+            "filepath": str(chunk_filepath), # Store relative or absolute path
+            "filename": chunk_filename,
+            "size_bytes": len(binary_data)
         }
-        
-        await db.video_frames.insert_one(frame_record)
-        
-        # Optionally, we could use the video frame in our AI context
-        # by sending it to the Gemini model along with any text
-        
+        await db.video_chunks.insert_one(video_chunk_record) # Using a new collection "video_chunks"
+
         return {
             "status": "success",
-            "message": "Video frame processed successfully",
-            "frame_id": frame_record["id"]
+            "message": "Video chunk processed and saved successfully",
+            "chunk_id": video_chunk_record["id"],
+            "filename": chunk_filename
         }
     except Exception as e:
-        logger.error(f"Error processing video frame: {str(e)}")
+        logger.error(f"Error processing video frame: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Error processing video frame: {str(e)}"
@@ -342,7 +380,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
